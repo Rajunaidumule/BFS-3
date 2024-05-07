@@ -24,3 +24,4 @@ pipeline {
             echo 'Failed to deploy Mule application to CloudHub'
         }
     }
+    }
