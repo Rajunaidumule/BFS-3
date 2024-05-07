@@ -1,0 +1,16 @@
+http:
+  port: "8081"
+  
+db:
+  AccountName: "nf11096.central-india.azure"
+  WareHouse: "COMPUTE_WH"
+  DataBase: "BANKING"
+  Schema: "BFS"
+  User: "Rajunaidu"
+  Password: "Raju@725926"
+  Role: "ACCOUNTADMIN"
+email:
+  Host: "smtp.gmail.com"
+  Port: "465"
+  User: "rajusatyavathi48@gmail.com"
+  Password: "zttuyjvgvllgiypl"

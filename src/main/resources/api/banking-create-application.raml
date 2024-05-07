@@ -1,0 +1,93 @@
+#%RAML 1.0
+title: Banking-Create-Application
+description: API for bank account creation
+version: v1
+protocols:
+  - HTTP
+  - HTTPS
+securitySchemes:
+  secure id:
+    type: Basic Authentication
+securedBy:
+  - secure id
+
+baseUri: http://localhost:8081/Banking
+types:
+  bankenum:
+    enum: [ICICI , AXIS ,HDFC,SBI]
+  accountType:
+    enum: [savings , current]
+  
+/CreateApplication:
+  post:
+    description: this method is used for creating the Bank account through ATM
+    queryParameters:
+      customerName:
+        type: string
+        required: true
+        minLength: 1
+        maxLength: 45
+      bank:
+        type: bankenum
+        required: true
+      type:
+        type: accountType
+        required: true
+      branchName:
+        type: string
+        required: true
+        minLength: 4
+        maxLength: 10
+    body:
+      application/json:
+        type: object
+        properties:
+          accountNum:
+            type: string
+            required: true
+            minLength: 10
+            maxLength: 10
+          atmPin:
+            type: string
+            required: true
+            minLength: 4
+            maxLength: 4
+          ifscCode:
+            type: string
+            required: true
+            minLength: 4
+            maxLength: 10
+          depositAmount:
+            type: number
+            required: false
+          mailId:
+            type: string
+            required: true
+          contact:
+            type: string
+            required: true
+            minLength: 10
+            maxLength: 10
+        example:
+          {
+          "accountNum": "1234567890",
+          "atmPin": "7254",
+          "ifscCode": "SBIN46767",
+          "depositAmount": 2000,
+          "mailId": "rajusatyavathhi48@gmail.com",
+          "contact": "6358002892"
+          }
+    responses:
+      201:
+        body:
+          application/xml:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "Account Created Successfully with Account Number xxxxxxxx"
+            example:
+              {
+                "status": "Account Created Successfully with Account Number xxxxxxxx"
+              }
+            

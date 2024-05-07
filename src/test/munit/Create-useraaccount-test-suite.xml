@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="Create-useraaccount-test-suite.xml" />
+	<munit:test name="Create-useraaccount-test-suite-post:\CreateApplication:application\json:banking-create-application-configTest" doc:id="ec268dae-a803-47c1-83ea-c6b509d1020b" description="Test">
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to post:\CreateApplication:application\json:banking-create-application-config" doc:id="02669bf6-dd5b-4bb2-81be-940df418e25c" name="post:\CreateApplication:application\json:banking-create-application-config"/>
+		</munit:execution>
+		<munit:validation >
+			<logger level="INFO" doc:name="Logger" doc:id="6dfe5ce0-e208-44bf-83fb-0c9e0dd041de" message="#[payload]"/>
+			<munit-tools:assert doc:name="Assert expression" doc:id="055c67db-dd87-4783-b8f7-9d196a6af497" />
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<snowflake:snowflake-config name="Snowflake_Config" doc:name="Snowflake Config" doc:id="6ba751e2-5bd4-4b18-a104-79334bae25ea" >
+		<snowflake:snowflake-connection accountName="${db.AccountName}" warehouse="${db.WareHouse}" database="${db.DataBase}" schema="${db.Schema}" user="${db.User}" password="${db.Password}" role="${db.Role}" />
+	</snowflake:snowflake-config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="9b2c24c2-5565-4517-bb30-8d45ce14aa96" >
+		<email:smtps-connection host="${email.Host}" port="${email.Port}" user="${email.User}" password="${email.Password}" >
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</email:smtps-connection>
+	</email:smtp-config>
+	<flow name="post:\CreateApplication:application\json:banking-create-application-config">
+		<logger level="INFO" doc:name="Logger" doc:id="013557b4-1b16-493e-b9b4-bfb33f7c9b95" message="create-application flow started"/>
+		<ee:transform doc:name="Transform Message" doc:id="6b8d8d2c-13eb-431f-b1f7-b0ebdbf26134" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="customerName" ><![CDATA[attributes.queryParams.customerName]]></ee:set-variable>
+				<ee:set-variable variableName="bank" ><![CDATA[attributes.queryParams.bank]]></ee:set-variable>
+				<ee:set-variable variableName="type" ><![CDATA[attributes.queryParams."type"]]></ee:set-variable>
+				<ee:set-variable variableName="branchName" ><![CDATA[attributes.queryParams.branchName]]></ee:set-variable>
+				<ee:set-variable variableName="accountNum" ><![CDATA[payload.accountNum]]></ee:set-variable>
+				<ee:set-variable variableName="atmPin" ><![CDATA[payload.atmPin]]></ee:set-variable>
+				<ee:set-variable variableName="ifscCode" ><![CDATA[payload.ifscCode]]></ee:set-variable>
+				<ee:set-variable variableName="depositAmount" ><![CDATA[payload.depositAmount default 0]]></ee:set-variable>
+				<ee:set-variable variableName="mailId" ><![CDATA[payload.mailId]]></ee:set-variable>
+				<ee:set-variable variableName="contact" ><![CDATA[payload.contact]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<snowflake:select doc:name="Select" doc:id="e3c5b582-97c5-40e0-80bb-3c0e7e0fef42" config-ref="Snowflake_Config">
+			<snowflake:sql ><![CDATA[select custAccNum from Bank_Transactions where custAccNum=:custAccNum]]></snowflake:sql>
+			<snowflake:input-parameters ><![CDATA[#[custAccNum: payload.accountNum]]]></snowflake:input-parameters>
+		</snowflake:select>
+		<logger level="INFO" doc:name="Logger" doc:id="11b4f1e1-e0fd-4c52-aa33-85fdbf243764" message="based on account number duplication verified updated"/>
+		<choice doc:name="Choice" doc:id="8883239e-d5fd-409b-8246-dbb4790f4ca3" >
+			<when expression="sizeOf(payload)&gt;=1">
+				<ee:transform doc:name="Transform Message" doc:id="3db6a539-de06-496e-996c-d6b443cad727" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	output3: "Account" ++ vars.accountNum ++ "already exist"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="6852f34a-ea4a-498b-89ab-53b09ccf0391" message="flow started for inserting into snowflake"/>
+				<ee:transform doc:name="Transform Message" doc:id="7c120481-1e9e-4243-8e5a-76c8131c42f0">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	custName: vars.customerName,
+	custAccNum: vars.accountNum,
+	atmPin: vars.atmPin,
+	bankName: vars.bank,
+	accountType: vars."type",
+	ifscCode: vars.ifscCode,
+	branchName: vars.branchName,
+	totalBalance: vars.depositAmount,
+	transactionTimeStamp: now() as String {format: "yyyy-MM-dd"},
+	accountStatus: "active",
+	wrongPin: payload.wrongPin default 0,
+	mailId: vars.mailId,
+	phoneNumber: vars.contact
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<snowflake:insert doc:name="Insert" doc:id="798a0535-e92d-4dcb-b8a4-3ad10c7984a4" config-ref="Snowflake_Config">
+			<snowflake:sql><![CDATA[insert into Bank_Transactions(custName, custAccNum, atmPin, bankName, accountType, ifscCode, branchName, totalBalance, transactionTimeStamp, accountStatus, wrongPin, mailId, phoneNumber)values (:custName, :custAccNum, :atmPin, :bankName, :accountType, :ifscCode, :branchName, :totalBalance, :transactionTimeStamp, :accountStatus, :wrongPin, :mailId, :phoneNumber)]]></snowflake:sql>
+			<snowflake:input-parameters><![CDATA[#[payload]]]></snowflake:input-parameters>
+		</snowflake:insert>
+				<flow-ref doc:name="Flow Reference" doc:id="0989e2c0-12ea-4026-947b-bd41aae0c4ed" name="send-email-flow"/>
+				<logger level="INFO" message="completed flow" />
+				<ee:transform doc:name="Transform Message" doc:id="5a009e26-0aac-479f-9b3e-be5f619bb40c" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Congratulations ! Account created with" ++ vars.accountNum 
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="448a0398-a437-4297-868e-9b4c702a761b" message="#[payload]" />
+    
+</flow>
+	<flow name="send-email-flow" doc:id="7274e53a-500b-4460-9fec-f68501d44e01" >
+		<logger level="INFO" doc:name="Logger" doc:id="198a1d35-9d10-4767-946d-38bdcaa4d8a4" message="email flow started"/>
+		<ee:transform doc:name="Transform Message" doc:id="8a92a42e-360c-4c7a-b278-1ae02d0a98c3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"output": "Congratulations ! Your account is created Successfully with 
+Account Number" ++ vars.accountNum ++ "with" ++ vars.bank
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<email:send doc:name="Send" doc:id="c133453c-8f1b-46ee-b289-760df986011e" config-ref="Email_SMTP" subject='Congratulations ! Account created' fromAddress="${email.User}">
+			<email:to-addresses >
+				<email:to-address value="#[vars.mailId]" />
+			</email:to-addresses>
+		</email:send>
+		<logger level="INFO" doc:name="Logger" doc:id="1d0f431a-aba1-4e80-a5ca-c3fbab5b800c" />
+	</flow>
+</mule>
